@@ -1,0 +1,7 @@
+services:
+  - type: web
+    name: c2-rat
+    env: python
+    plan: free
+    buildCommand: pip install --upgrade pip
+    startCommand: python3 server.py
