@@ -5,3 +5,9 @@ services:
     plan: free
     buildCommand: pip install --upgrade pip
     startCommand: python3 server.py
+  - type: web
+    name: signal-rat
+    runtime: python
+    plan: free
+    buildCommand: pip install --upgrade pip
+    startCommand: python3 signal_server.py
