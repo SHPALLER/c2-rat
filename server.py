@@ -39,6 +39,7 @@ class Handler(BaseHTTPRequestHandler):
                 "model": params.get("model", ["?"])[0],
                 "battery": params.get("battery", ["?"])[0],
             }
+            print(f"[beacon] {did} | model={DEVICES[did]['model']} | bat={DEVICES[did]['battery']}", flush=True)
         elif p.path == "/result":
             did = params.get("id", ["?"])[0]
             data = params.get("data", [""])[0]
@@ -93,6 +94,5 @@ def cli():
         print(f"queued for {did}: {cmd} {arg}")
 
 if __name__ == "__main__":
-    import os
-    port = int(os.environ.get("PORT", 8080))
-    HTTPServer(("0.0.0.0", port), Handler).serve_forever()
+    threading.Thread(target=lambda: HTTPServer(("0.0.0.0", 8080), Handler).serve_forever(), daemon=True).start()
+    cli()
